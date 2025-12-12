@@ -7,7 +7,7 @@ User = get_user_model()
 
 
 class Job(models.Model):
-    title = models.Charfield(max_length=200)
+    title = models.CharField(max_length=200)
     department = models.CharField(max_length=100, blank=False)
     location = models.CharField(max_length=100, blank=False)
     hiring_manager = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
