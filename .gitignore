@@ -1,0 +1,83 @@
+### Python & Django ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Environments
+/venv/
+/env/
+.venv/
+
+# Pytest / Coverage
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# IDEs
+*.swp
+*~
+*.log
+.DS_Store
+# .idea/
+
+### Django Specific ###
+# Django secrets files
+secret_key.py
+.env
+
+# Auto-generated migrations
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Static files and media files
+/static/
+/media/
+
+# Test data files
+db.sqlite3
+
+### Docker & Containers ###
+# The database's persisted data
+/data/
+/dbdata/
+/postgres_data/
+
+# Environment files containing secrets
+.env
+.env-local
+.env-prod
+.env-secret
+
+### Operating System ###
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# macOS
+.DS_Store
+.localized
