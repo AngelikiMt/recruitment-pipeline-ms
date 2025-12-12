@@ -1,6 +1,7 @@
 ### Python & Django ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
+*/__pycache__/*
 *.py[cod]
 *$py.class
 
@@ -81,3 +82,10 @@ ehthumbs.db
 # macOS
 .DS_Store
 .localized
+
+# IDE & Editor Specific
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
