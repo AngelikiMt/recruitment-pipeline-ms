@@ -24,7 +24,7 @@ class StageHistorySerializer(serializers.ModelSerializer):
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
-    stage_history = StageHistorySerializer(source='stage_history', many=True, read_only=True)
+    stage_history = StageHistorySerializer(many=True, read_only=True)
     time_to_hire = serializers.SerializerMethodField()
 
     class Meta:
