@@ -54,7 +54,7 @@ class Application(models.Model):
             models.UniqueConstraint(fields=['candidate', 'job'], condition=models.Q(status__in=['applied','phone_screen','onsite','offer']), name='unique_active_application')
         ]
 
-    def time_to_hire(self) -> Optional[int]:
+    def days_to_hire(self) -> Optional[int]:
         if self.hired_at:
             return (self.hired_at - self.applied_at).days
         return None
@@ -63,7 +63,7 @@ class Application(models.Model):
         last: models.QuerySet[StageHistory] = self.stagehistory_set.order_by("-entered_at").first()
         if not last:
             return None
-        return (timezone.now - last.entered_at).total_seconds()
+        return (timezone.now() - last.entered_at).total_seconds()
     
     def save(self, *args: Any, **kwargs: Any) -> None:
         if self.score is not None and not (0 <= self.score <= 100):

@@ -25,14 +25,14 @@ class StageHistorySerializer(serializers.ModelSerializer):
 
 class ApplicationSerializer(serializers.ModelSerializer):
     stage_history = StageHistorySerializer(many=True, read_only=True)
-    time_to_hire = serializers.SerializerMethodField()
+    days_to_hire = serializers.SerializerMethodField()
 
     class Meta:
         model: Model = Application
-        fields: Tuple[Any] = ('id','candidate','job','status','score','applied_at','hired_at','time_to_hire','stage_history')
+        fields: Tuple[Any] = ('id','candidate','job','status','score','applied_at','hired_at','days_to_hire','stage_history')
 
-    def get_time_to_hire(self, obj: Application) -> Optional[int]:
-        return obj.time_to_hire()
+    def get_days_to_hire(self, obj: Application) -> Optional[int]:
+        return obj.days_to_hire()
 
     def validate(self, data: Dict[str, Any]) -> Dict[str, Any]:
         if self.instance is None:
