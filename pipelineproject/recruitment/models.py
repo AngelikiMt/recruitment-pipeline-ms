@@ -60,7 +60,7 @@ class Application(models.Model):
         return None
     
     def current_time_in_stage(self) -> Optional[float]:
-        last: models.QuerySet[StageHistory] = self.stagehistory_set.order_by("entered_at")
+        last: models.QuerySet[StageHistory] = self.stagehistory_set.order_by("-entered_at").first()
         if not last:
             return None
         return (timezone.now - last.entered_at).total_seconds()
