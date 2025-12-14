@@ -33,15 +33,16 @@ Recruiters/Hiring Managers: Primary users who interact with the system to create
 
 ## Core Requiements Implementation Plan
 ### Entities & Relationships
-| Entity        |           Description                      |        Relationships            |
-|----------------------------------------------------------------------------------------------|
-| Job           | Position available for hiring              | One-to-Many with Application    |
-| Candidate     | Person applying for roles                  | One-to-Many with Application    |
-| Application   | A candidate applying for a job             | Many-to-One (Job, Candidate),   |
-|               | Tracks pipeline state                      | One-to-Many with StageHistory   |
-| Stage History | Historical log of stage transitions        | Many-to-One with Application    |
-| AuditLog      | System-wide, immutable log of user actions | Tracks changes tied to entities |
-| User          | Django Auth user performing actions        | Linked in audit logs            |
+### Entities & Relationships
+
+| Entity | Description | Relationships |
+|:---|:---|:---|
+| Job | Position available for hiring | One-to-Many with Application |
+| Candidate | Person applying for roles | One-to-Many with Application |
+| Application | A candidate applying for a job, Tracks pipeline state | Many-to-One (Job, Candidate), One-to-Many with StageHistory |
+| Stage History | Historical log of stage transitions | Many-to-One with Application |
+| AuditLog | System-wide, immutable log of user actions | Tracks changes tied to entities |
+| User | Django Auth user performing actions | Linked in audit logs |
 
 ### Transparency & Observability
 - AuditLog model: Records the authenticated Django User (actor), action, timestamp, and metadata (old/new status)
@@ -54,7 +55,6 @@ Recruiters/Hiring Managers: Primary users who interact with the system to create
 2. Application.days_to_hire: Calculated dynamically via a SerializerMethodField once the status is "hired"
 3. Custom Validation: The ApplicationSerializer enforces a Unique Active Application constraint, preventing a candidate from having multiple active applications (status not in 'hired' or 'rejected') for the same job
 4. Score Validation: Ensures the score field is within the valid range of 0 to 100
-5. Job.open_positions_filled
 
 ### Rest Endpoints
 1. POST /recruitments/jobs/ - create job
@@ -64,12 +64,12 @@ Recruiters/Hiring Managers: Primary users who interact with the system to create
 5. GET /recruitments/applications/{id}/ - retrieve application with logs/history
 
 ### Containerized Deployment
-- Dockerfile builds the Django application
-- docker-compose.yml defines:
-    1. services web (Django application), 
-    2. db (PostgreSQL database)
-- Environment variables control database configuration
-- Running docker-compose up launches the full stack
+1. Dockerfile builds the Django application
+2. docker-compose.yml defines:
+    - services web (Django application), 
+    - db (PostgreSQL database)
+3. Environment variables control database configuration
+4. Running docker compose up launches the full stack
 
 ### Testing Strategy
 1. Unit Tests
@@ -77,7 +77,7 @@ Recruiters/Hiring Managers: Primary users who interact with the system to create
     - Business logic: pipeline transitions, time calculations
     - Serializer validation rules
 2. Integration Tests
-    - Create job → create candidate → create application → update stages → hire
+    - Create job -> create candidate -> create application -> update stages -> hire
     - Validate API responses, status codes, and history creation
     - Implemented using pytest and pytest-django
 
@@ -105,18 +105,23 @@ Endpoints: /auth/token/ (acquire token) and /auth/token/refresh/ (renew token) a
 
 ## Setup, Testing & Exploration
 ### Setup Instructions (Containerized Deployment)
-1. Clone repository:
+1. Install Docker Desktop
+2. Docker Login
+3. Clone repository:
+
 ```
 git clone <repository_url>
 cd <project_directory>
 ```
 
-2. Build and run containers: (Requires Docker and Docker Compose)
+4. Build and run containers: (Requires Docker and Docker Compose)
+
 ```
 docker compose up --build
 ```
 
-3. Run Migrations and create Superuser: (Execute inside the web container)
+5. Run Migrations and create Superuser: (Execute inside the web container)
+
 ```
 docker compose exec web python manage.py migrate
 docker compose exec web python manage.py createsuperuser
@@ -134,9 +139,39 @@ docker compose ps
 ```
 
 ### API Exploration & Debugging Guide
-using Postman:
-/auth/token/ -> method: POST , headers { Content-Type : application/json } , body { "username" : "username" , "password" : "password"}
-/recruitments/applications/{id}/status/ -> method: PATCH , headers { Content-Type : application/json, Authorization: Bearer Access Token } , body { "status" : "new_status" , "note" : "note"}
+1. Authentication
+Get an Access Token via Postman for interaction with the protected operations
+
+| Field | Value |
+|:---|:---|
+| **Endpoint** | /auth/token/ |
+| **Method** | POST |
+| **Headers** | Content-Type : application/json |
+| **Body** | (JSON) |
+
+```
+{ 
+    "username": "your_superuser_username",
+    "password": "your_password"
+}
+```
+
+2. Pipeline Transition (status update)
+Update the application status via Postman for create the StageHistory anf the AuditLog
+
+| Field | Value |
+|:---|:---|
+| **Endpoint** | /recruitments/applications/{id}/status/ |
+| **Method** | PATCH |
+| **Headers** | Content-Type : application/json , Authorization: Bearer your_access_token |
+| **Body** | (JSON) |
+
+```
+{ 
+    "status" : "new_status" , 
+    "note" : "your_note"
+}
+```
 
 ### Authentication Steps:
 1. Get Token: Send a POST request to /auth/token/ with your superuser credentials.
