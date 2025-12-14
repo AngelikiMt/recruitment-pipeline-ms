@@ -1,3 +1,8 @@
+"""
+API Views for the Recruitment Pipeline Management System.
+This module handles CRUD operations for Job, Candidate, Application, and AuditLog,
+and enforces core business logic for application status transitions.
+"""
 from typing import Optional, Type
 
 from rest_framework import viewsets, status
@@ -19,16 +24,28 @@ from .services.reject_reasons import validate_reject_reason
 
 
 class JobViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing Job listings (CRUD operations).
+    Requires authentication for all operations.
+    """
     queryset: QuerySet[Job] = Job.objects.all()
     serializer_class: Type[JobSerializer] = JobSerializer
 
 
 class CandidateViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing Candidate profiles (CRUD operations).
+    Requires authentication for all operations.
+    """
     queryset: QuerySet[Candidate] = Candidate.objects.all()
     serializer_class: Type[CandidateSerializer] = CandidateSerializer
 
 
 class ApplicationViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing Applications in the recruitment pipeline (CRUD operations).
+    Includes a custom action for status updates to enforce pipeline rules.
+    """
     queryset: QuerySet[Application] = Application.objects.all().select_related("candidate", "job").prefetch_related('stagehistory_set')
     serializer_class: Type[ApplicationSerializer] = ApplicationSerializer
 
@@ -37,6 +54,21 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["patch"], url_path="status")
     def update_status(self, request: Request, pk: Optional[str]=None) -> Response:
+        """
+        Updates the application status, enforcing pipeline transition rules
+        and logging the change in StageHistory and AuditLog.
+
+        Endpoint: PATCH /recruitments/applications/{id}/status/
+
+        Request Body fields:
+        - status (required): The new status (e.g., 'phone_screen', 'rejected', 'hired').
+        - note (optional): A note justifying the status change.
+        - reject_reason (required if status is 'rejected'): Standardized code (e.g., 'technical_skills').
+
+        Raises:
+            400 Bad Request: If the transition is invalid, the new status is invalid, 
+                             or if 'rejected' is chosen without a valid 'reject_reason'.
+        """
 
         application: Application = self.get_object()
         old_status: str = application.status
@@ -94,10 +126,18 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing system-wide immutable Audit Logs.
+    Only read operations are allowed. Logs are ordered by timestamp descending.
+    """
     queryset: QuerySet[AuditLog] = AuditLog.objects.all().order_by("-timestamp")
     serializer_class: Type[AuditLogSerializer] = AuditLogSerializer
 
 
 @api_view(['GET'])
 def health_check(request: Request)-> Response:
+    """
+    Provides a simple readiness/liveness check for container deployment.
+    Endpoint: GET /healthz/
+    """
     return Response({"status": "ok", "service": "Recruitment Pipeline API"}, status=status.HTTP_200_OK)

@@ -1,3 +1,8 @@
+"""
+Database models for the Recruitment Pipeline Management System.
+These models define the core entities (Job, Candidate, Application) and
+the critical historical/observability entities (StageHistory, AuditLog).
+"""
 from typing import List, Tuple, Optional, Any
 
 from django.db import models
@@ -9,6 +14,9 @@ User = get_user_model()
 
 
 class Job(models.Model):
+    """
+    Represents a job opening available for recruitment.
+    """
     title = models.CharField(max_length=200)
     department = models.CharField(max_length=100, blank=False)
     location = models.CharField(max_length=100, blank=False)
@@ -21,6 +29,9 @@ class Job(models.Model):
     
 
 class Candidate(models.Model):
+    """
+    Represents an individual applicant in the system.
+    """
     full_name = models.CharField(max_length=200)
     email = models.EmailField()
     resume_url = models.URLField(blank=True, null=True)
@@ -32,6 +43,10 @@ class Candidate(models.Model):
     
 
 class Application(models.Model):
+    """
+    The core entity representing a candidate's progress through the recruitment pipeline
+    for a specific job. Tracks status, score, and key dates.
+    """
     STATUS_CHOICES: List[Tuple[str, str]] = [
         ("applied", "Applied"),
         ("phone_screen", "Phone Screen"),
@@ -55,23 +70,37 @@ class Application(models.Model):
         ]
 
     def days_to_hire(self) -> Optional[int]:
+        """
+        Calculates the total number of days taken to hire the candidate 
+        from the application date.
+        """
         if self.hired_at:
             return (self.hired_at - self.applied_at).days
         return None
     
     def current_time_in_stage(self) -> Optional[float]:
+        """
+        Calculates the duration (in seconds) since the last status transition
+        """
         last: models.QuerySet[StageHistory] = self.stagehistory_set.order_by("-entered_at").first()
         if not last:
             return None
         return (timezone.now() - last.entered_at).total_seconds()
     
     def save(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Overrides save() to perform custom validation checks before saving the instance.
+        Ensures the score is within the 0-100 range.
+        """
         if self.score is not None and not (0 <= self.score <= 100):
             raise ValueError("Score must be between values 0 and 100 included.")
         super().save(*args, **kwargs)
 
 
 class StageHistory(models.Model):
+    """
+    Immutable log of every status transition for a specific Application.
+    """
     application = models.ForeignKey(Application, on_delete=models.CASCADE)
     stage = models.CharField(max_length=50)
     entered_at = models.DateTimeField(default=timezone.now)
@@ -82,6 +111,10 @@ class StageHistory(models.Model):
     
 
 class AuditLog(models.Model):
+    """
+    System-wide, immutable log of user actions (who, did what, to which entity, when).
+    Critical for compliance, debugging, and general observability.
+    """
     actor = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     verb = models.CharField(max_length=100)
     target_type = models.CharField(max_length=100)
