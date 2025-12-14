@@ -106,6 +106,15 @@ Valid reasons include: culture_fit, technical_skills, experience, salary, positi
 
 Trade-offs: While DRF adds some overhead, it significantly reduces the boilerplate required for secure, production-ready REST APIs compared to lower-level frameworks.
 
+### Frontend Strategy & Architectural Choice
+The Pure API + Django Admin approach is the most strategic choice for this phase of the project. It delivers the core business value, a reliable, auditable workflow, with the minimum time investment and lowest architectural complexity.
+
+| Strategy | Description | Development Time | Complexity | Justification |
+|:---|:---|:---|:---|:---|
+| Pure API + Django Admin | Django REST Framework (DRF) with the built-in Django Admin Interface used for all management/CRUD tasks | Low | Low | Allows immediate focus on crucial back-end validation, auditing, and business logic. Provides instant, authenticated workflow management |
+| Simple Forms / MPA | Traditional Django Templates, Forms, and minimal JavaScript/jQuery | Medium | Medium | Requires developing and maintaining templates, forms, and views for every screen. Offers little advantage over the Django Admin for internal management tasks but significantly increases development overhead |
+| Single Page Application (SPA) | Dedicated frontend framework (e.g., React, Vue, Angular) consuming the API separately | High | High | Introduces complexities like CORS, separate build processes, and client-side JWT/State Management. The high initial time and complexity cost is not justified when the primary goal is a robust API back end |
+
 ### Database: PostgreSQL (containerized via Docker)
 The Recruitment Pipeline System is inherently a workflow and audit management system. PostgreSQL offers:
 - superior transactional reliability (ACID compliance), which is critical for ensuring that status updates (e.g., moving a candidate from Interview to Offer) are never partially recorded. This guarantees the integrity of our core audit trail (Pipeline Step entity), satisfying the core Transparency & Observability requirement.
