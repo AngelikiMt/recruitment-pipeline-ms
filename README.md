@@ -143,13 +143,14 @@ cd <project_directory>
 4. Build and run containers: (Requires Docker and Docker Compose)
 
 ```
-docker compose up --build
+docker compose up --build -d
 ```
 
 5. Run Migrations and create Superuser: (Execute inside the web container)
 
 ```
 docker compose exec web python manage.py migrate
+docker compose exec web python manage.py loaddata initial_data.json
 docker compose exec web python manage.py createsuperuser
 ```
 
