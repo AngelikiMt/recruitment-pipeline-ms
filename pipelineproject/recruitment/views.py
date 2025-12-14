@@ -7,12 +7,15 @@ from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from django.utils import timezone
-from django.db.models.query import QuerySet
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
+from django.db.models.query import QuerySet
+from django.utils import timezone
 
 from .models import Job, Candidate, Application, StageHistory, AuditLog
 from .serializers import JobSerializer, CandidateSerializer, ApplicationSerializer, AuditLogSerializer
+from .services.pipeline import validate_transition
+from .services.reject_reasons import validate_reject_reason
 
 
 class JobViewSet(viewsets.ModelViewSet):
@@ -36,16 +39,31 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def update_status(self, request: Request, pk: Optional[str]=None) -> Response:
 
         application: Application = self.get_object()
+        old_status: str = application.status
+
         new_status: Optional[str] = request.data.get("status")
         note: str = request.data.get("note", "")
+        reject_reason: Optional[str] = request.data.get("reject_reason")
 
         valid_statuses = dict(Application.STATUS_CHOICES).keys()
-
         if new_status not in valid_statuses:
-            return Response(
-                {"detail": "Invalid status"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"detail": "Invalid status"}, status=400)
+
+        try:
+            validate_transition(old_status, new_status)
+        except ValidationError as e:
+            return Response({"detail": str(e)}, status=400)
+        
+        if new_status == "rejected":
+            if not reject_reason:
+                return Response(
+                    {"detail": "reject_reason is required when rejecting an application"},
+                    status=400
+                )
+            try:
+                validate_reject_reason(reject_reason)
+            except ValueError as e:
+                return Response({"detail": str(e)}, status=400)
 
         StageHistory.objects.create(application=application, stage=new_status, note=note)
 
@@ -67,6 +85,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 "old_status": application.status,
                 "new_status": new_status,
                 "note": note,
+                "reject_reason": reject_reason,
             },
         )
 

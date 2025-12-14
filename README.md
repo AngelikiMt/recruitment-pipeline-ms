@@ -37,18 +37,34 @@ Recruiters/Hiring Managers: Primary users who interact with the system to create
 
 | Entity | Description | Relationships |
 |:---|:---|:---|
-| Job | Position available for hiring | One-to-Many with Application |
-| Candidate | Person applying for roles | One-to-Many with Application |
-| Application | A candidate applying for a job, Tracks pipeline state | Many-to-One (Job, Candidate), One-to-Many with StageHistory |
-| Stage History | Historical log of stage transitions | Many-to-One with Application |
-| AuditLog | System-wide, immutable log of user actions | Tracks changes tied to entities |
-| User | Django Auth user performing actions | Linked in audit logs |
+| **Job** | Position available for hiring | One-to-Many with Application |
+| **Candidate** | Person applying for roles | One-to-Many with Application |
+| **Application** | A candidate applying for a job, Tracks pipeline state | Many-to-One (Job, Candidate), One-to-Many with StageHistory |
+| **Stage History** | Historical log of stage transitions | Many-to-One with Application |
+| **AuditLog** | System-wide, immutable log of user actions | Tracks changes tied to entities |
+| **User** | Django Auth user performing actions | Linked in audit logs |
 
 ### Transparency & Observability
 - AuditLog model: Records the authenticated Django User (actor), action, timestamp, and metadata (old/new status)
 - Stage History Inline: The Django Admin configuration uses TabularInline to display the entire history of stage transitions directly within the Application edit page, providing instant Observability of the workflow
 - Health Check: The /healthz/ endpoint provides a readiness check for containerized deployment
 - Logging: JSON-structured logs facilitate easier debugging and monitoring in container environments
+
+### Pipeline Transition Rules
+The system enforces strict, predefined status changes to maintain process consistency. Any attempt to skip steps (e.g., applied directly to offer) will be rejected by the API with a 400 Bad Request.
+
+| Current Status | Allowed Next Statuses |
+|:---|:---|
+| applied | phone_screen, rejected |
+| phone_screen | onsite, rejected |
+| onsite | offer, rejected |
+| offer | hired, rejected |
+| hired, rejected | (Final states - no further transitions allowed) |
+
+### Reject Reason Validation
+When an application is moved to the rejected status, the system requires a specific rejection reason (reject_reason field) to be provided. This ensures data completeness for future analytics and auditability.
+
+Valid reasons include: culture_fit, technical_skills, experience, salary, position_closed.
 
 ### Calculated fields & validations
 1. Application.current_time_in_stage: Time since last stage transition.
@@ -60,7 +76,7 @@ Recruiters/Hiring Managers: Primary users who interact with the system to create
 1. POST /recruitments/jobs/ - create job
 2. GET /recruitments/jobs/?status=open - filter job listings
 3. POST /recruitments/applications/ - create application (validation: no duplicate active application)
-4. PATCH /recruitments/applications/{id}/status/ - update status & append StageHistory
+4. PATCH /recruitments/applications/{id}/status/ - update status & append StageHistory (Validation: transition rules & reject reason)
 5. GET /recruitments/applications/{id}/ - retrieve application with logs/history
 
 ### Containerized Deployment
@@ -71,9 +87,10 @@ Recruiters/Hiring Managers: Primary users who interact with the system to create
 3. Environment variables control database configuration
 4. Running docker compose up launches the full stack
 
-### Testing Strategy
+### Testing
 1. Unit Tests
     - Model validations (e.g., score range, unique applications)
+    - Service Layer Logic: pipeline transitions and reject reason validation
     - Business logic: pipeline transitions, time calculations
     - Serializer validation rules
 2. Integration Tests
@@ -157,7 +174,8 @@ Get an Access Token via Postman for interaction with the protected operations
 ```
 
 2. Pipeline Transition (status update)
-Update the application status via Postman for create the StageHistory anf the AuditLog
+Update the application status via Postman for create the StageHistory anf the AuditLog. 
+Requires reject_reason if status is "rejected".
 
 | Field | Value |
 |:---|:---|
@@ -170,6 +188,14 @@ Update the application status via Postman for create the StageHistory anf the Au
 { 
     "status" : "new_status" , 
     "note" : "your_note"
+}
+```
+
+```
+{ 
+    "status" : "rejected", 
+    "note" : "Insufficient experience on modern frameworks",
+    "reject_reason": "technical_skills"
 }
 ```
 
