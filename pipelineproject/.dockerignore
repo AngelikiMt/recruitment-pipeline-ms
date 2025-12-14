@@ -1,0 +1,25 @@
+# Python Caching & Run-time
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv
+.venv
+
+# Database Files (Local SQLite)
+db.sqlite3
+*.db
+
+# Docker Files (usually not needed inside)
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Git Files
+.git
+.gitignore
+
+# Environment Variables (CRITICAL for security)
+.env
