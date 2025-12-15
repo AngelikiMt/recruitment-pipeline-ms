@@ -157,5 +157,22 @@ LOGGING = {
     'root': {
         'handlers': ['console'],
         'level': os.getenv('LOG_LEVEL', 'INFO'),
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'recruitment': {
+            'handlers': ['console'],
+            'level': os.getenv('APP_LOG_LEVEL', 'DEBUG'),
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'INFO', 
+            'propagate': False,
+        }
     }
 }

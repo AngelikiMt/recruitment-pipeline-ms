@@ -5,6 +5,7 @@ and enforces core business logic for application status transitions.
 """
 from typing import Optional, Type
 
+import logging
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view
 from rest_framework.request import Request
@@ -52,6 +53,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
+    logger = logging.getLogger('recruitment')
+
     @action(detail=True, methods=["patch"], url_path="status")
     def update_status(self, request: Request, pk: Optional[str]=None) -> Response:
         """
@@ -82,47 +85,53 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Invalid status"}, status=400)
 
         try:
-            validate_transition(old_status, new_status)
-        except ValidationError as e:
-            return Response({"detail": str(e)}, status=400)
-        
-        if new_status == "rejected":
-            if not reject_reason:
-                return Response(
-                    {"detail": "reject_reason is required when rejecting an application"},
-                    status=400
-                )
-            try:
+            validate_transition(application, new_status, request.user)
+
+            if new_status == "rejected":
+                if not reject_reason:
+                    self.logger.warning(f"Reject attempt failed for App {pk}: Missing reject_reason.")
+                    return Response(
+                        {"detail": "reject_reason is required when rejecting an application"},
+                        status=400
+                    )
                 validate_reject_reason(reject_reason)
-            except ValueError as e:
-                return Response({"detail": str(e)}, status=400)
+            
+            StageHistory.objects.create(application=application, stage=new_status, note=note)
 
-        StageHistory.objects.create(application=application, stage=new_status, note=note)
+            application.status = new_status
+            if new_status == "hired":
+                application.hired_at = timezone.now()
 
-        application.status = new_status
-        if new_status == "hired":
-            application.hired_at = timezone.now()
+            application.save()
 
-        application.save()
+            user: AbstractUser = request.user
+            actor: Optional[AbstractUser] = user if user.is_authenticated else None
 
-        user: AbstractUser = request.user
-        actor: Optional[AbstractUser] = user if user.is_authenticated else None
+            AuditLog.objects.create(
+                actor=actor,
+                verb="application_status_changed",
+                target_type="Application",
+                target_id=str(application.id),
+                data={
+                    "old_status": application.status,
+                    "new_status": new_status,
+                    "note": note,
+                    "reject_reason": reject_reason,
+                },
+            )
 
-        AuditLog.objects.create(
-            actor=actor,
-            verb="application_status_changed",
-            target_type="Application",
-            target_id=str(application.id),
-            data={
-                "old_status": application.status,
-                "new_status": new_status,
-                "note": note,
-                "reject_reason": reject_reason,
-            },
-        )
+            self.logger.info(f"API Success: Application {pk} status updated to {new_status} by user {request.user.username}")
 
-        serializer: Serializer = self.get_serializer(application)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            serializer: Serializer = self.get_serializer(application)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        except (ValidationError, ValueError) as e:
+            self.logger.warning(f"API Failure (400): Invalid data/transition request from user {request.user.username} on application: {pk}. Error: {e}")
+            return Response({'error': str(e)}, status=400)
+             
+        except Exception as e:
+            self.logger.error(f"API CRITICAL FAILURE: Unhandled exception on application: {pk}.", exc_info=True)
+            return Response({'error': 'Internal server error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):

@@ -45,10 +45,11 @@ Recruiters/Hiring Managers: Primary users who interact with the system to create
 | **User** | Django Auth user performing actions | Linked in audit logs |
 
 ### Transparency & Observability
-- AuditLog model: Records the authenticated Django User (actor), action, timestamp, and metadata (old/new status)
-- Stage History Inline: The Django Admin configuration uses TabularInline to display the entire history of stage transitions directly within the Application edit page, providing instant Observability of the workflow
+- AuditLog model: Records the authenticated Django User (actor), action, timestamp, and metadata (old/new status) This tracks **Business Events**.
+- Stage History Inline: The Django Admin configuration uses TabularInline to display the entire history of stage transitions directly within the Application edit page, providing instant **Observability** of the workflow
 - Health Check: The /healthz/ endpoint provides a readiness check for containerized deployment
 - Logging: JSON-structured logs facilitate easier debugging and monitoring in container environments
+- Standard Python Logging: Configured to stream all `INFO`/`WARNING`/`ERROR` messages to Docker's standard output. This handles **Technical Debugging**.
 
 ### Pipeline Transition Rules
 The system enforces strict, predefined status changes to maintain process consistency. Any attempt to skip steps (e.g., applied directly to offer) will be rejected by the API with a 400 Bad Request.
@@ -217,5 +218,5 @@ Requires reject_reason if status is "rejected".
 1. Django Admin: Access http://localhost:8000/admin/ to inspect the database state, verify the AuditLog is immutable, and see the StageHistory inline within the Application detail view.
 2. Container Logs: Use the following command to view real-time application logs, including the specific AuditLog entries created by the system.
 ```
-docker compose logs web
+docker compose logs -f web
 ```
