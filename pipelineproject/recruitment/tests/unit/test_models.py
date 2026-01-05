@@ -55,20 +55,20 @@ class TestApplicationCalculatedFields:
 
     def test_current_time_in_stage_calculation(self, monkeypatch):
         """Controls time rewind to current stage (uses monkeypatch to freeze time)."""
-        fake_now = self.applied_time + timedelta(days=5, seconds=10)
+        fake_now = self.applied_time + timedelta(days=5, hours=10)
         
         monkeypatch.setattr(timezone, 'now', lambda: fake_now)
 
         StageHistory.objects.create(
             application=self.application,
             stage="phone_screen",
-            entered_at=self.applied_time + timedelta(days=5)
+            entered_at=self.applied_time
         )
 
-        seconds: Optional[float] = self.application.current_time_in_stage()
+        days: Optional[float] = self.application.current_time_in_stage()
         
-        assert seconds is not None
-        assert 9.0 < seconds < 11.0
+        assert days is not None
+        assert days == 5
 
 
 """

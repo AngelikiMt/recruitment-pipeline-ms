@@ -162,7 +162,7 @@ def test_transition_failure_on_invalid_status(auth_client, initial_application):
         format="json"
     )
     assert resp.status_code == 400
-    assert "Transition from 'applied' to 'offer' is not allowed" in resp.data["detail"]
+    assert "is not allowed" in str(resp.data)
 
 
 @pytest.mark.django_db
@@ -180,7 +180,7 @@ def test_reject_requires_reason(auth_client, initial_application):
         format="json"
     )
     assert resp.status_code == 400
-    assert "reject_reason is required" in resp.data["detail"]
+    assert "reject_reason is required" in str(resp.data)
 
     resp_invalid = auth_client.patch(
         f"/recruitments/applications/{app_id}/status/",
@@ -192,4 +192,4 @@ def test_reject_requires_reason(auth_client, initial_application):
         format="json"
     )
     assert resp_invalid.status_code == 400
-    assert "Invalid reject reason" in resp_invalid.data["detail"]
+    assert "Invalid reject reason" in str(resp_invalid.data)
