@@ -52,10 +52,11 @@ class ApplicationSerializer(serializers.ModelSerializer):
     """
     stage_history = StageHistorySerializer(many=True, read_only=True)
     days_to_hire = serializers.SerializerMethodField()
+    days_in_current_stage = serializers.ReadOnlyField(source='current_time_in_stage')
 
     class Meta:
         model: Model = Application
-        fields: Tuple[Any] = ('id','candidate','job','status','score','applied_at','hired_at','days_to_hire','stage_history')
+        fields: Tuple[Any] = ('id','candidate','job','status','score','applied_at','hired_at','days_to_hire','stage_history', 'days_in_current_stage')
 
     def get_days_to_hire(self, obj: Application) -> Optional[int]:
         return obj.days_to_hire()

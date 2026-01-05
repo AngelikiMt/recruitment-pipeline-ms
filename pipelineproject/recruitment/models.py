@@ -85,7 +85,7 @@ class Application(models.Model):
         last: models.QuerySet[StageHistory] = self.stagehistory_set.order_by("-entered_at").first()
         if not last:
             return None
-        return (timezone.now() - last.entered_at).total_seconds()
+        return (timezone.now() - last.entered_at).days
     
     def save(self, *args: Any, **kwargs: Any) -> None:
         """

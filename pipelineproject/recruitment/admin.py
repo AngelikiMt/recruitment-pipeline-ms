@@ -25,12 +25,17 @@ class CandidateAdmin(admin.ModelAdmin):
 
 @admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
-    list_display = ("id", "candidate", "job", "status", "score", "applied_at", "hired_at")
+    list_display = ("id", "candidate", "job", "status", "score", "applied_at", "hired_at", 'display_days_in_stage')
     list_filter = ("status", "job")
     search_fields = ("candidate__full_name", "candidate__email", "job__title")
     readonly_fields = ("applied_at", "hired_at")
     inlines = [StageHistoryInline]
     ordering = ("-applied_at",)
+
+    def display_days_in_stage(self, obj):
+        days = obj.current_time_in_stage()
+        if days is None: return "0"
+        return f"{days} days"
 
 
 @admin.register(StageHistory)

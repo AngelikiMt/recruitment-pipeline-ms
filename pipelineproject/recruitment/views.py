@@ -113,7 +113,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 target_type="Application",
                 target_id=str(application.id),
                 data={
-                    "old_status": application.status,
+                    "old_status": old_status,
                     "new_status": new_status,
                     "note": note,
                     "reject_reason": reject_reason,
